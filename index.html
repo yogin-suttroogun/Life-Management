@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Training Week</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: scoreboard header, 7-row week strip (24h bars), then one day's timeline at a time */
+:root{
+  --bg:#F2F5F7; --surface:#FFFFFF; --ink:#14202B; --muted:#5D6B78; --line:#DCE3E9; --accent:#1F7A52;
+  --sleep:#5B5FC7; --work:#3E6A8A; --train:#DD4B36; --coach:#1F8A57; --move:#98A3AE; --meal:#D49422; --free:#C6CFD8;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F151B; --surface:#17202A; --ink:#E6ECF1; --muted:#93A1AE; --line:#26323E; --accent:#4CC38A;
+  --sleep:#8A8EF0; --work:#6E9CC0; --train:#F2715C; --coach:#43B97E; --move:#6B7785; --meal:#E7B04A; --free:#3A4653;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F151B; --surface:#17202A; --ink:#E6ECF1; --muted:#93A1AE; --line:#26323E; --accent:#4CC38A;
+  --sleep:#8A8EF0; --work:#6E9CC0; --train:#F2715C; --coach:#43B97E; --move:#6B7785; --meal:#E7B04A; --free:#3A4653;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2{font-family:var(--display);font-weight:700;letter-spacing:.01em;margin:0;text-wrap:balance;line-height:1.05}
+h1{font-size:2.6rem;text-transform:uppercase}
+h2{font-size:1.5rem;text-transform:uppercase}
+.eyebrow{font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.lede{color:var(--muted);margin:6px 0 0;max-width:60ch}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.85rem;color:var(--muted);margin-top:14px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+section{display:flex;flex-direction:column;gap:12px}
+
+/* week strip */
+.strip{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 14px 10px;overflow-x:auto}
+.strip-grid{display:grid;grid-template-columns:44px 1fr;gap:6px 10px;min-width:320px}
+.strip-day{font-family:var(--display);font-weight:700;font-size:1.05rem;text-transform:uppercase;align-self:center;background:none;border:0;color:var(--ink);padding:0;text-align:left;cursor:pointer}
+.strip-day.on{color:var(--accent)}
+.bar{position:relative;height:22px;border-radius:4px;background:var(--bg);overflow:hidden;cursor:pointer}
+.bar i{position:absolute;top:0;bottom:0}
+.axis{position:relative;height:16px;font-family:var(--mono);font-size:.65rem;color:var(--muted)}
+.axis span{position:absolute;transform:translateX(-50%)}
+.axis span:first-child{transform:none}.axis span:last-child{transform:translateX(-100%)}
+
+/* tabs */
+.tabs{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.tab{font-family:var(--display);font-weight:700;font-size:1.05rem;text-transform:uppercase;padding:8px 0;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tab small{display:block;font-family:var(--body);font-weight:600;font-size:.62rem;letter-spacing:.06em;opacity:.7}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.office{display:flex;align-items:center;gap:10px;font-size:.92rem;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:10px 12px}
+.office input{width:18px;height:18px;accent-color:var(--accent);flex:none}
+
+/* day panel */
+.dayhead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px}
+.stats{display:flex;flex-wrap:wrap;gap:6px}
+.stat{font-size:.8rem;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-variant-numeric:tabular-nums}
+.stat b{font-weight:700}
+.stat.ok b{color:var(--accent)}
+.stat.short b{color:var(--train)}
+.tl{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tl li{display:grid;grid-template-columns:96px 4px 1fr;gap:12px;padding:10px 14px;border-top:1px solid var(--line);align-items:start}
+.tl li:first-child{border-top:0}
+.tl time{font-family:var(--mono);font-size:.8rem;color:var(--muted);padding-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tl .rail{border-radius:2px;align-self:stretch;min-height:22px}
+.tl .what{min-width:0}
+.tl .t{font-weight:700}
+.tl .n{font-size:.88rem;color:var(--muted)}
+.tl .d{font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-left:6px;font-weight:500}
+.tl li.big .t{font-size:1.05rem}
+.tl li.now{background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.tl li.now .t::after{content:"Now";margin-left:8px;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.tl li.marker .t{font-family:var(--display);text-transform:uppercase;font-size:1.05rem;letter-spacing:.02em}
+
+/* rules */
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.rule{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rule h3{margin:0 0 4px;font-size:.95rem}
+.rule p{margin:0;font-size:.9rem;color:var(--muted)}
+.foot{font-size:.82rem;color:var(--muted)}
+
+.print-only{display:none}
+@media (max-width:480px){h1{font-size:2.1rem}.tl li{grid-template-columns:78px 4px 1fr;gap:10px;padding:10px 12px}.tl time{font-size:.72rem}.tab{font-size:.95rem}}
+@media print{
+  body{background:#fff;color:#000;padding:0}
+  .tabs,.office,.screen-only{display:none!important}
+  .print-only{display:block}
+  .tl li{break-inside:avoid;padding:4px 10px}
+  .dayblock{break-inside:avoid;margin-bottom:14px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Week plan · 2 jobs</div>
+    <h1>My Training Week</h1>
+    <p class="lede">8h30 of sleep and 2 hours of training every day, around 7.5h of software work (plus 30-min lunch and 15-min tea) and badminton coaching.</p>
+    <div class="legend" id="legend"></div>
+  </header>
+
+  <section class="screen-only" aria-label="Week at a glance">
+    <h2>Week at a glance</h2>
+    <div class="strip"><div class="strip-grid" id="strip"></div></div>
+  </section>
+
+  <section class="screen-only">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <label class="office" for="officeToggle">
+      <input type="checkbox" id="officeToggle">
+      <span><b>Office day this week.</b> Puts the office trip on Wednesday (1.5h ride each way) and adjusts Tue, Wed and Sat.</span>
+    </label>
+  </section>
+
+  <section id="day" class="screen-only" aria-live="polite"></section>
+  <section id="printAll" class="print-only"></section>
+
+  <section>
+    <h2>Rules that make it work</h2>
+    <div class="rules">
+      <div class="rule"><h3>Bedtime is fixed</h3><p>Every wake time is set from the bedtime the night before. If one slips, cut free time, not sleep.</p></div>
+      <div class="rule"><h3>Prep dinners ahead</h3><p>Tue and Thu need dinner on the table at 8:20. Cook 4–5 dinners on Saturday or Sunday.</p></div>
+      <div class="rule"><h3>Light evenings</h3><p>Tue/Thu evening sessions are mobility, yoga, core and stretching only, so they help sleep.</p></div>
+      <div class="rule"><h3>Sunday is recovery</h3><p>After 5.5 hours of coaching, make the 2 hours easy: a long walk, an easy swim, stretching.</p></div>
+      <div class="rule"><h3>Take the rides</h3><p>A ride home after coaching saves 20 minutes. Use it for wind-down, not more screen time.</p></div>
+      <div class="rule"><h3>Office days: Wednesday only</h3><p>Mon, Tue, Thu and Fri can't fit a 3-hour round trip before coaching. On Wednesday sleep stays at 8h30, training drops to 45 min, and Saturday's session runs an hour longer.</p></div>
+    </div>
+    <p class="foot">Lunch and tea are inside every work window. Work totals 7h30 each weekday.</p>
+  </section>
+</div>
+
+<script>
+(function(){
+const TYPES={sleep:["Sleep","--sleep"],work:["Software job","--work"],train:["Workout","--train"],coach:["Coaching","--coach"],move:["Walk / ride","--move"],meal:["Meals","--meal"],free:["Free / rest","--free"]};
+const B=(s,e,type,t,n)=>({s,e,type,t,n});
+
+const base={
+ Mon:{wake:"06:30",bed:"22:00",coach:"6–8 pm",blocks:[
+  B("06:45","07:45","train","Workout · Strength","Fresh legs, done before work."),
+  B("07:45","08:15","meal","Shower + breakfast"),
+  B("08:15","12:00","work","Software job"),
+  B("12:00","12:30","meal","Lunch break"),
+  B("12:30","15:00","work","Software job"),
+  B("15:00","15:15","meal","Tea break"),
+  B("15:15","16:30","work","Software job","Log off at 4:30."),
+  B("16:30","17:30","train","Workout · Cardio & footwork","Doubles as your coaching warm-up."),
+  B("17:30","17:40","meal","Snack"),
+  B("17:40","18:00","move","Walk to coaching"),
+  B("18:00","20:00","coach","Badminton coaching"),
+  B("20:00","20:20","move","Walk home","Or take the ride."),
+  B("20:20","21:00","meal","Dinner","Pre-made."),
+  B("21:00","21:45","free","Free time"),
+  B("21:45","22:00","free","Wind down","Phone away.")]},
+ Tue:{wake:"06:30",bed:"22:15",coach:"4:30–8 pm",blocks:[
+  B("06:35","07:20","train","Workout · Strength","Short and sharp: 45 min."),
+  B("07:20","07:45","meal","Shower + breakfast"),
+  B("07:45","12:00","work","Software job","Early start so you can leave at 4:10."),
+  B("12:00","12:30","meal","Lunch break"),
+  B("12:30","14:30","work","Software job"),
+  B("14:30","14:45","meal","Tea break"),
+  B("14:45","16:00","work","Software job"),
+  B("16:00","16:10","meal","Snack"),
+  B("16:10","16:30","move","Walk to coaching"),
+  B("16:30","20:00","coach","Badminton coaching"),
+  B("20:00","20:20","move","Walk home"),
+  B("20:20","20:50","meal","Dinner","Must be pre-made tonight."),
+  B("20:50","22:05","train","Workout · Mobility & core","Light only: yoga, stretching, core. 75 min."),
+  B("22:05","22:15","free","Wind down")]},
+ Wed:{wake:"06:45",bed:"22:30",coach:"7–9 pm",blocks:[
+  B("06:45","07:15","meal","Breakfast"),
+  B("07:15","11:30","work","Software job"),
+  B("11:30","12:00","meal","Lunch break"),
+  B("12:00","14:15","work","Software job"),
+  B("14:15","14:30","meal","Tea break"),
+  B("14:30","15:30","work","Software job","Log off at 3:30."),
+  B("15:30","17:30","train","Workout · Long session","Your big 2-hour block of the week."),
+  B("17:30","18:15","meal","Shower + early dinner"),
+  B("18:15","18:40","free","Free time"),
+  B("18:40","19:00","move","Walk to coaching"),
+  B("19:00","21:00","coach","Badminton coaching"),
+  B("21:00","21:20","move","Walk home"),
+  B("21:20","22:30","free","Snack, shower, wind down")]},
+ Thu:{wake:"07:00",bed:"22:15",coach:"5–8 pm",blocks:[
+  B("07:00","07:20","meal","Breakfast"),
+  B("07:20","11:30","work","Software job"),
+  B("11:30","12:00","meal","Lunch break"),
+  B("12:00","14:15","work","Software job"),
+  B("14:15","14:30","meal","Tea break"),
+  B("14:30","15:35","work","Software job"),
+  B("15:35","16:30","train","Workout · Cardio & footwork","55 min."),
+  B("16:30","16:40","meal","Snack"),
+  B("16:40","17:00","move","Walk to coaching"),
+  B("17:00","20:00","coach","Badminton coaching"),
+  B("20:00","20:20","move","Walk home"),
+  B("20:20","20:55","meal","Dinner","Pre-made."),
+  B("20:55","22:00","train","Workout · Mobility & stretch","Light only. 65 min."),
+  B("22:00","22:15","free","Wind down")]},
+ Fri:{wake:"06:45",bed:"22:30",coach:"6–8 pm",blocks:[
+  B("06:50","07:55","train","Workout · Strength","65 min."),
+  B("07:55","08:20","meal","Shower + breakfast"),
+  B("08:20","12:00","work","Software job"),
+  B("12:00","12:30","meal","Lunch break"),
+  B("12:30","15:00","work","Software job"),
+  B("15:00","15:15","meal","Tea break"),
+  B("15:15","16:35","work","Software job"),
+  B("16:35","17:30","train","Workout · Cardio","55 min."),
+  B("17:30","17:40","meal","Snack"),
+  B("17:40","18:00","move","Walk to coaching"),
+  B("18:00","20:00","coach","Badminton coaching"),
+  B("20:00","20:20","move","Walk home"),
+  B("20:20","21:00","meal","Dinner"),
+  B("21:00","22:15","free","Free time","Friday evening is yours."),
+  B("22:15","22:30","free","Wind down")]},
+ Sat:{wake:"07:00",bed:"21:30",coach:"2–4 pm",blocks:[
+  B("07:00","08:00","meal","Breakfast"),
+  B("08:00","10:00","train","Workout · Long session","Second big block of the week."),
+  B("10:00","10:30","meal","Shower + snack"),
+  B("10:30","13:15","free","Meal prep + errands","Cook dinners for Tue and Thu."),
+  B("13:15","13:40","meal","Lunch"),
+  B("13:40","14:00","move","Walk to coaching"),
+  B("14:00","16:00","coach","Badminton coaching"),
+  B("16:00","16:20","move","Walk home"),
+  B("16:20","21:00","free","Free time / social","Plan social time here, not tonight."),
+  B("21:00","21:30","free","Wind down","Early night for Sunday's 7 am start.")]},
+ Sun:{wake:"06:00",bed:"22:00",coach:"7 am–12:30 pm",blocks:[
+  B("06:00","06:40","meal","Breakfast + pack food","Bring snacks and water for 5.5 hours."),
+  B("06:40","07:00","move","Walk to coaching"),
+  B("07:00","12:30","coach","Badminton coaching"),
+  B("12:30","12:50","move","Walk home"),
+  B("12:50","13:30","meal","Lunch"),
+  B("13:30","15:00","free","Rest / nap"),
+  B("15:00","17:00","train","Workout · Active recovery","Easy: long walk, swim, stretching."),
+  B("17:00","19:00","meal","Meal prep for the week"),
+  B("19:00","21:30","free","Free time"),
+  B("21:30","22:00","free","Wind down")]}
+};
+
+const office={
+ Tue:{...base.Tue,bed:"21:45",blocks:base.Tue.blocks.slice(0,-2).concat([
+  B("20:50","21:35","train","Workout · Mobility & core","Shortened to 45 min for tomorrow's early start."),
+  B("21:35","21:45","free","Wind down")])},
+ Wed:{wake:"06:15",bed:"22:30",coach:"7–9 pm",office:true,blocks:[
+  B("06:15","07:00","train","Workout · Strength","45 min at home."),
+  B("07:00","07:15","meal","Shower"),
+  B("07:15","08:45","move","Ride to the office","Eat breakfast on the way."),
+  B("08:45","12:15","work","Software job · Office"),
+  B("12:15","12:45","meal","Lunch break"),
+  B("12:45","15:00","work","Software job · Office"),
+  B("15:00","15:15","meal","Tea break"),
+  B("15:15","17:00","work","Software job · Office"),
+  B("17:00","18:30","move","Ride home"),
+  B("18:30","18:40","meal","Quick dinner","Pre-made, or eat on the ride."),
+  B("18:40","19:00","move","Walk to coaching"),
+  B("19:00","21:00","coach","Badminton coaching"),
+  B("21:00","21:20","move","Walk home"),
+  B("21:20","22:15","meal","Snack + 15-min stretch"),
+  B("22:15","22:30","free","Wind down")]},
+ Sat:{...base.Sat,blocks:base.Sat.blocks.map(b=>b.t==="Workout · Long session"?B("08:00","11:00","train","Workout · Long session","Extended by an hour to cover the office day."):b.t==="Shower + snack"?B("11:00","11:20","meal","Shower + snack"):b.t==="Meal prep + errands"?B("11:20","13:15","free","Meal prep + errands","Cook dinners for Tue and Thu."):b)}
+};
+
+const ORDER=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const FULL={Mon:"Monday",Tue:"Tuesday",Wed:"Wednesday",Thu:"Thursday",Fri:"Friday",Sat:"Saturday",Sun:"Sunday"};
+const m=t=>{const[h,mm]=t.split(":").map(Number);return h*60+mm};
+const fmt=t=>{let[h,mm]=t.split(":").map(Number);const ap=h>=12?"pm":"am";h=h%12||12;return h+":"+String(mm).padStart(2,"0")+" "+ap};
+const dur=n=>{const h=Math.floor(n/60),r=n%60;return h?(h+"h"+(r?String(r).padStart(2,"0"):"")):r+"m"};
+
+let officeOn=false,cur=null;
+try{officeOn=localStorage.getItem("officeWed")==="1"}catch(e){}
+const plan=()=>{const p={...base};if(officeOn)Object.assign(p,office);return p};
+
+// legend
+document.getElementById("legend").innerHTML=Object.values(TYPES).map(([l,c])=>`<span><i class="sw" style="background:var(${c})"></i>${l}</span>`).join("");
+
+function totals(p,d){
+  const day=p[d],next=p[ORDER[(ORDER.indexOf(d)+1)%7]];
+  const sleep=(24*60-m(day.bed))+m(next.wake);
+  const sum=k=>day.blocks.filter(b=>b.type===k).reduce((a,b)=>a+m(b.e)-m(b.s),0);
+  return{sleep,train:sum("train"),work:sum("work"),coach:sum("coach")};
+}
+
+function renderStrip(){
+  const p=plan(),el=document.getElementById("strip");let h="";
+  ORDER.forEach((d,i)=>{
+    const day=p[d],prev=p[ORDER[(i+6)%7]];
+    const seg=(s,e,c)=>`<i style="left:${s/14.4}%;width:${(e-s)/14.4}%;background:var(${c})"></i>`;
+    let bars=seg(0,m(day.wake),"--sleep")+seg(m(day.bed),1440,"--sleep");
+    day.blocks.forEach(b=>{bars+=seg(m(b.s),m(b.e),TYPES[b.type][1])});
+    h+=`<button class="strip-day${d===cur?" on":""}" data-d="${d}">${d}</button><div class="bar" data-d="${d}" title="${FULL[d]}">${bars}</div>`;
+  });
+  h+=`<span></span><div class="axis">${[0,6,12,18,24].map(x=>`<span style="left:${x/24*100}%">${x===0||x===24?"12a":x===12?"12p":x<12?x+"a":(x-12)+"p"}</span>`).join("")}</div>`;
+  el.innerHTML=h;
+  el.querySelectorAll("[data-d]").forEach(b=>b.addEventListener("click",()=>select(b.dataset.d)));
+}
+
+function renderTabs(){
+  const p=plan();
+  document.getElementById("tabs").innerHTML=ORDER.map(d=>`<button class="tab" role="tab" id="tab-${d}" aria-selected="${d===cur}" data-d="${d}">${d}<small>${p[d].coach.replace(/ (am|pm)/g,"")}</small></button>`).join("");
+  document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>select(t.dataset.d)));
+}
+
+function dayHTML(d,p,live){
+  const day=p[d],t=totals(p,d);
+  const now=new Date(),isToday=live&&ORDER[(now.getDay()+6)%7]===d,nm=now.getHours()*60+now.getMinutes();
+  const stat=(l,v,ok)=>`<span class="stat ${ok===undefined?"":ok?"ok":"short"}">${l} <b>${dur(v)}</b></span>`;
+  let rows=`<li class="marker"><time>${fmt(day.wake)}</time><span class="rail" style="background:var(--sleep)"></span><div class="what"><div class="t">Wake up</div></div></li>`;
+  day.blocks.forEach(b=>{
+    const len=m(b.e)-m(b.s),isNow=isToday&&nm>=m(b.s)&&nm<m(b.e);
+    rows+=`<li class="${len>=90?"big":""}${isNow?" now":""}"><time>${fmt(b.s)}</time><span class="rail" style="background:var(${TYPES[b.type][1]})"></span><div class="what"><div class="t">${b.t}<span class="d">${dur(len)}</span></div>${b.n?`<div class="n">${b.n}</div>`:""}</div></li>`;
+  });
+  const nextWake=p[ORDER[(ORDER.indexOf(d)+1)%7]].wake;
+  rows+=`<li class="marker"><time>${fmt(day.bed)}</time><span class="rail" style="background:var(--sleep)"></span><div class="what"><div class="t">Lights out</div><div class="n">Sleep until ${fmt(nextWake)}.</div></div></li>`;
+  return `<div class="dayblock"><div class="dayhead"><h2>${FULL[d]}${day.office?" · Office":""}</h2><div class="stats">${stat("Sleep",t.sleep,t.sleep>=510)}${stat("Train",t.train,t.train>=120)}${t.work?stat("Work",t.work):""}${stat("Coach",t.coach)}</div></div><ol class="tl">${rows}</ol></div>`;
+}
+
+function select(d){
+  cur=d;try{localStorage.setItem("planDay",d)}catch(e){}
+  document.getElementById("day").innerHTML=dayHTML(d,plan(),true);
+  renderTabs();renderStrip();
+}
+function renderPrint(){const p=plan();document.getElementById("printAll").innerHTML=ORDER.map(d=>dayHTML(d,p,false)).join("")}
+
+const tog=document.getElementById("officeToggle");
+tog.checked=officeOn;
+tog.addEventListener("change",()=>{officeOn=tog.checked;try{localStorage.setItem("officeWed",officeOn?"1":"0")}catch(e){}select(officeOn&&!["Tue","Wed","Sat"].includes(cur)?"Wed":cur);renderPrint()});
+
+select(ORDER[(new Date().getDay()+6)%7]);
+renderPrint();
+})();
+</script>
+
+</body>
+</html>
